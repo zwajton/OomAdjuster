@@ -1,0 +1,7 @@
+id=oom_adjuster
+name=OOM Adjuster
+version=v4.3
+versionCode=4
+author=zwajton
+description=Adjusts OOM scores for specific apps to prevent killing.
+minMagisk=20000
