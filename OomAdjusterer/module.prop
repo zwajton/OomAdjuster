@@ -5,3 +5,4 @@ versionCode=6
 author=zwajton
 description=Adjusts OOM scores for specific apps to prevent killing.
 minMagisk=20000
+updateJson=https://raw.githubusercontent.com/zwajton/OomAdjuster/main/update.json
