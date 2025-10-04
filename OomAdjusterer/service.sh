@@ -61,7 +61,7 @@ prev_pid_pogo=""
     while true; do
         current_pid_pogo=$(pidof com.nianticlabs.pokemongo)
         if [ "$pause_on_pid_change" = true ] && [ -n "$prev_pid_pogo" ] && [ "$prev_pid_pogo" != "$current_pid_pogo" ]; then
-            running_evermore=$(pidof com.evermorelabs.polygonx com.evermorelabs.aerilate)
+            running_evermore=$(pidof com.evermorelabs.polygonx)
             if [ -n "$running_evermore" ]; then
                 log "Pokémon GO PID changed while EvermoreLabs apps are running. Pausing OOM adjustment for 10 seconds."
 				# Changed from 30 sec to 10 sec
@@ -71,7 +71,7 @@ prev_pid_pogo=""
         fi
         prev_pid_pogo="$current_pid_pogo"
 
-        for process in com.nianticlabs.pokemongo com.evermorelabs.polygonx com.evermorelabs.aerilate; do
+        for process in com.nianticlabs.pokemongo com.evermorelabs.polygonx; do
             pid=$(pidof "$process" | awk '{print $1}')
             if [ -n "$pid" ]; then
                 # Move to top-app cgroup (Android 10+)
@@ -105,7 +105,7 @@ prev_pid_pogo=""
                 fi
             fi
         done
-        sleep 0.5 ## Changed from 5 seconds to 500ms
+        sleep 0.1 ## Changed from 500 ms to 100 ms
     done
 ) &
 
@@ -153,8 +153,6 @@ prev_pid_pogo=""
                 log "Compacted PoGo memory"
             cmd activity compact -m some com.evermorelabs.polygonx 2>/dev/null && \
                 log "Compacted PolygonX memory"
-            cmd activity compact -m some com.evermorelabs.aerilate 2>/dev/null && \
-                log "Compacted Aerilate memory"
         else
             log "Memory usage at ${mem_usage_percent}%. Skipping app compaction."
         fi
