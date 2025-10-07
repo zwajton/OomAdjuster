@@ -1,3 +1,14 @@
+Version 7
+Fixes and Performance Improvements
+Dynamic Sleep Interval:
+- Introduces a dynamic sleep_interval to make the module react faster to high memory usage (10 seconds instead of 30 seconds) by speeding up cache drops.
+Faster OOM Adjustment:
+- The main adjustment loop now runs five times faster (every 100ms) for more consistent application of process priorities.
+Safer Uninstallation:
+- The uninstall script has been cleaned up, removing unsafe system calls (cmd/pkill) to ensure a reliable uninstall process.
+Fixes:
+- Resolved minor installation issues.
+
 Version 6
 - Removed Aerilate from the script
 - Added uninstall script
