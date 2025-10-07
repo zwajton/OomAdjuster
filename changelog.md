@@ -1,5 +1,5 @@
 Version 7
-Fixes and Performance Improvements
+
 Dynamic Sleep Interval:
 - Introduces a dynamic sleep_interval to make the module react faster to high memory usage (10 seconds instead of 30 seconds) by speeding up cache drops.
 Faster OOM Adjustment:
