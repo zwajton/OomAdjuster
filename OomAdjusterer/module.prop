@@ -1,7 +1,7 @@
 id=oom_adjuster
 name=OOM Adjuster
-version=v6
-versionCode=6
+version=v7
+versionCode=7
 author=zwajton
 description=Adjusts OOM scores for specific apps to prevent killing.
-minMagisk=20000
+updateJson=https://raw.githubusercontent.com/zwajton/OomAdjuster/main/update.json

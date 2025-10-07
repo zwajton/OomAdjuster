@@ -16,47 +16,13 @@ log() {
 
 log "Starting OOM adjustment..."
 
-# --------------------------------------------------
-# Enhanced Phantom Process Configuration (Android 10+)
-# --------------------------------------------------
-(
-    # Wait for system to stabilize
-    sleep 30
-    
-    android_ver=$(getprop ro.build.version.release | cut -d. -f1)
-    if [ "$android_ver" -ge 10 ]; then
-        log "Applying Android 10+ phantom process tweaks"
-        
-        # Persistent configuration with retry logic
-        for i in 1 2 3 4 5; do
-            # Set sync disabled first (required for other changes to stick)
-            cmd device_config set_sync_disabled_for_tests persistent && \
-            cmd device_config put activity_manager max_cached_processes 256 && \
-            cmd device_config put activity_manager max_phantom_processes 2147483647 && \
-            cmd device_config put activity_manager max_empty_time_millis 43200000 && \
-            cmd settings put global settings_enable_monitor_phantom_procs false && {
-                log "Phantom process tweaks successfully applied"
-                break
-            }
-            
-            log "Attempt $i/5 failed to apply phantom tweaks, retrying..."
-            sleep 10
-        done
-        
-        # Verify settings were applied
-        current_max_phantom=$(cmd device_config get activity_manager max_phantom_processes)
-        [ "$current_max_phantom" = "2147483647" ] || \
-            log "Warning: max_phantom_processes not set correctly (current: $current_max_phantom)"
-    else
-        log "Android version $android_ver detected, skipping phantom process tweaks"
-    fi
-) &
+# Phantom process tweaks are handled by phantom_fix.sh (keep single source of truth)
 # --------------------------------------------------
 
 pause_on_pid_change=true
 prev_pid_pogo=""
 
-# OOM Adjuster loop (every 500ms)
+# OOM Adjuster loop (every 100ms)
 (
     while true; do
         current_pid_pogo=$(pidof com.nianticlabs.pokemongo)
@@ -113,7 +79,7 @@ prev_pid_pogo=""
 (
     while true; do
         if ! pidof com.evermorelabs.polygonx > /dev/null; then
-            log "PolygonX not running — attempting to restart service."
+            log "PolygonX not running - attempting to restart service."
             am startservice --user 0 com.evermorelabs.polygonx/.services.PolygonXService 2>>"$MODPATH/oom_adjuster.log"
         fi
         sleep 30
@@ -131,11 +97,13 @@ prev_pid_pogo=""
         if [ "$mem_usage_percent" -ge 80 ]; then
             echo 3 > /proc/sys/vm/drop_caches
             log "Dropped caches due to high memory usage (${mem_usage_percent}%)"
+            sleep_interval=10
         else
             log "Memory usage at ${mem_usage_percent}%. Skipped cache drop."
+            sleep_interval=30
         fi
 
-        sleep 30
+        sleep "$sleep_interval"
     done
 ) &
 
