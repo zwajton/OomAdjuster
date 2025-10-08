@@ -1,5 +1,11 @@
-Version 7
+Version 8
+Critical Fixes:
+- Fixed oom_score_adj not being applied to protected processes
+- Fixed renice priority not setting correctly
+- Resolved process protection reliability issues
+Now properly prevents protected apps from being killed by the system
 
+Version 7
 Dynamic Sleep Interval:
 - Introduces a dynamic sleep_interval to make the module react faster to high memory usage (10 seconds instead of 30 seconds) by speeding up cache drops.
 Faster OOM Adjustment:
