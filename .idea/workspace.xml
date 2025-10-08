@@ -5,8 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6b4a635f-a516-4cfa-ab35-1d9c8cf24331" name="Changes" comment="Added module to repo">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OomAdjusterer/module.prop" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/module.prop" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OomAdjusterer/phantom_fix.sh" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/phantom_fix.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OomAdjusterer/service.sh" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/service.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OomAdjusterer/uninstall.sh" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/uninstall.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/update.json" beforeDir="false" afterPath="$PROJECT_DIR$/update.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,7 +31,26 @@
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/Nothing A063/_/data/adb/modules/YetAnotherBootloopProtector/allowed-scripts.txt" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/Nothing A063/_/data/adb/modules/YetAnotherBootloopProtector/post-fs-data.sh" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/Nothing A063/_/data/adb/modules/YetAnotherBootloopProtector/service.sh" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/dmesg.log" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/locat.log" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/user_init_log.old.log/services" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/user_init_log/boot-completed" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/user_init_log/early-init" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/user_init_log/late-init" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/user_init_log/post-fs-data" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/ap/log/user_init_log/services" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/TA_utl/service.sh" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/oom_adjuster/config.json" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/oom_adjuster/oom_adjuster.log" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/oom_adjuster/phantom_fix.log" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/oom_adjuster/service.sh" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/oom_adjuster/webui.log" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/playintegrityfix/example.app_replace.list" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/tricky_store/service.sh" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/tricky_store/webroot/applist.json" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/wadbd/module.prop" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/wadbd/post-fs-data.sh" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/data/adb/modules/wadbd/system/bin/wadbd" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/system_ext/etc/build.prop" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/system_ext/etc/build_flags.json" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/system_ext/etc/pixelworks_apps.xml" root0="SKIP_INSPECTION" />
@@ -54,9 +77,9 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "com.google.services.firebase.aqiPopupShown": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "update",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/pontu/Desktop/Polygon/logs"
+    "last_opened_file_path": "C:/Users/pontu/Documents/GitHub/OomAdjuster/OomAdjusterer/oom_adjuster_v7.7.zip"
   }
 }]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
