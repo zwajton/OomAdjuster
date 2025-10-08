@@ -4,14 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b4a635f-a516-4cfa-ab35-1d9c8cf24331" name="Changes" comment="Added module to repo">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/OomAdjusterer/module.prop" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/module.prop" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/OomAdjusterer/phantom_fix.sh" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/phantom_fix.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/OomAdjusterer/service.sh" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/service.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/OomAdjusterer/uninstall.sh" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/uninstall.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/update.json" beforeDir="false" afterPath="$PROJECT_DIR$/update.json" afterDir="false" />
-    </list>
+    <list default="true" id="6b4a635f-a516-4cfa-ab35-1d9c8cf24331" name="Changes" comment="Added module to repo" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

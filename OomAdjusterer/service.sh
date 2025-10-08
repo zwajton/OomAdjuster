@@ -142,7 +142,7 @@ prev_pid_pogo=""
         mem_used_kb=$((mem_total_kb - mem_avail_kb))
         mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
 
-        if [ "$mem_usage_percent" -ge "$drop_cache_threshold" ]; then # Now configurable
+        if [ "$mem_usage_percent" -ge 80 ]; then
             echo 3 > /proc/sys/vm/drop_caches
             log "Dropped caches due to high memory usage (${mem_usage_percent}%)"
             sleep_interval=10
@@ -163,7 +163,7 @@ prev_pid_pogo=""
         mem_used_kb=$((mem_total_kb - mem_avail_kb))
         mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
 
-        if [ "$mem_usage_percent" -ge "$compact_threshold" ]; then # Now configurable
+        if [ "$mem_usage_percent" -ge 80 ]; then
             log "Memory usage at ${mem_usage_percent}%. Compacting app memory..."
             cmd activity compact -m some com.nianticlabs.pokemongo 2>/dev/null && \
                 log "Compacted PoGo memory"
@@ -185,7 +185,7 @@ prev_pid_pogo=""
         mem_used_kb=$((mem_total_kb - mem_avail_kb))
         mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
 # --------------------------------------------------
-        if [ "$mem_usage_percent" -ge "$lru_threshold" ]; then # Now configurable
+        if [ "$mem_usage_percent" -ge 80 ]; then
             log "Memory usage at ${mem_usage_percent}%. Running LRU deprioritization."
 # --------------------------------------------------
             dumpsys activity lru | grep -E 'Proc #[0-9]+:' | while read -r line; do
