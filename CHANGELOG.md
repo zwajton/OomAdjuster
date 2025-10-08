@@ -3,7 +3,7 @@ Critical Fixes:
 - Fixed oom_score_adj not being applied to protected processes
 - Fixed renice priority not setting correctly
 - Resolved process protection reliability issues
-Now properly prevents protected apps from being killed by the system
+**Now properly prevents protected apps from being killed by the system**
 
 Version 7
 Dynamic Sleep Interval:
