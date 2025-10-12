@@ -4,7 +4,7 @@ A Magisk module keeps important apps like PolygonX and Pokémon GO safe from bei
 ## Root handler program
 This module requires that your phone is rooted.
 Root handler programs that this module is working on:
-- Magisk
+- Magisk 29+
 - Kitsune
 - Apatch
 - KSU
