@@ -1,3 +1,9 @@
+Version 9
+Update for texture heavy events.
+- Pokémon GO Memory Killer, Automatically kills PoGo when memory usage exceeds thresholds (95% system RAM or 2800MB PoGo usage)
+- Fixed PolygonX Watchdog
+- This version addresses the core issue of Pokémon Go memory consumption triggering system-wide LMKD kills
+
 Version 8
 Critical Fixes:
 - Fixed oom_score_adj not being applied to protected processes

@@ -1,5 +1,12 @@
 #!/system/bin/sh
 MODDIR=${0%/*}
+
+# Wait for system boot completion before doing ANYTHING
+while [ "$(getprop sys.boot_completed)" != "1" ]; do
+    sleep 5
+done
+sleep 15  # Additional wait for system stability
+
 # Ensure permissions for all scripts
 chmod 755 "$MODDIR"/*.sh 2>/dev/null
 
@@ -13,7 +20,7 @@ touch "$LOG_FILE"
 # Log function
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [OOM Adjuster] $*" >> "$LOG_FILE"
-    tail -n 1000 "$LOG_FILE" > "$MODDIR/tmp_log" && mv "$MODDIR/tmp_log" "$LOG_FILE"
+    tail -n 5000 "$LOG_FILE" > "$MODDIR/tmp_log" && mv "$MODDIR/tmp_log" "$LOG_FILE"
 }
 
 # Load config values
@@ -43,10 +50,10 @@ load_config() {
 }
 
 # Launch phantom fix
-if [ -f "$MODDIR/phantom_fix.sh" ]; then
-    sh "$MODDIR/phantom_fix.sh" &
-    log "Phantom fix started"
-fi
+#if [ -f "$MODDIR/phantom_fix.sh" ]; then
+#    sh "$MODDIR/phantom_fix.sh" &
+#    log "Phantom fix started"
+#fi
 
 # Load config
 load_config
@@ -122,17 +129,160 @@ prev_pid_pogo=""
         sleep 0.1
     done
 ) &
-# --------------------------------------------------
-# PolygonX watchdog loop
+# ==========================
+# PolygonX Watchdog with Dual Cache Clear & PoGo Kill on LMKD Recovery
+# ==========================
+(
+    APP_PKG="com.evermorelabs.polygonx"
+    POGO_PKG="com.nianticlabs.pokemongo"
+    CHECK_INTERVAL=35
+    RESTART_DELAY=15
+
+    log "PolygonX watchdog started with dual cache clear & PoGo kill on LMKD recovery."
+
+    while true; do
+        if ! pidof "$APP_PKG" > /dev/null; then
+            log "PolygonX not running - waiting ${RESTART_DELAY}s and cleaning up..."
+            sleep "$RESTART_DELAY"
+            
+            # Store whether PoGo was running before PolygonX died
+            was_pogo_running=$(pidof "$POGO_PKG")
+            
+            # KILL PoGo if it was running when PolygonX died (LMKD scenario)
+            if [ -n "$was_pogo_running" ]; then
+                log "LMKD kill detected - force killing PoGo with kill -9..."
+                
+                # Aggressive kill of all PoGo processes
+                pgrep -f "$POGO_PKG" | while read -r pid; do
+                    kill -9 "$pid" 2>/dev/null
+                    log "Killed -9 PoGo process: $pid"
+                done
+                
+                # Force stop any remnants
+                am force-stop "$POGO_PKG" 2>/dev/null
+                
+                log "PoGo force kill completed"
+                
+                # CLEAR CACHE FOR BOTH APPS (not data)
+                log "Clearing cache for both PolygonX and Pokémon Go..."
+                
+                # Clear PolygonX cache
+                cmd package trim-caches com.evermorelabs.polygonx >> "$LOG_FILE" 2>&1
+                pm clear-com.evermorelabs.polygonx.CACHE >> "$LOG_FILE" 2>&1
+                rm -rf /data/data/com.evermorelabs.polygonx/cache/* 2>/dev/null
+                log "PolygonX cache cleared"
+                
+                # Clear Pokémon Go cache
+                cmd package trim-caches com.nianticlabs.pokemongo >> "$LOG_FILE" 2>&1
+                pm clear-com.nianticlabs.pokemongo.CACHE >> "$LOG_FILE" 2>&1
+                rm -rf /data/data/com.nianticlabs.pokemongo/cache/* 2>/dev/null
+                log "Pokémon Go cache cleared"
+                
+                log "Dual cache clearing completed (both apps)"
+            fi
+            
+            # Free memory before restarting PolygonX
+            log "Pre-restart memory cleanup..."
+            echo 3 > /proc/sys/vm/drop_caches
+            sync
+            sleep 8
+            
+            # Restart PolygonX using monkey (the working method)
+            log "Restarting PolygonX via monkey..."
+            timeout 10 /system/bin/monkey -p com.evermorelabs.polygonx -c android.intent.category.LAUNCHER 1 >> "$LOG_FILE" 2>&1
+            
+            sleep 8
+            if pidof "$APP_PKG" > /dev/null; then
+                log "SUCCESS: PolygonX restarted via monkey after dual cache clear"
+                
+                # Log the restart cycle completion
+                if [ -n "$was_pogo_running" ]; then
+                    log "LMKD recovery cycle completed: Both apps killed → Both caches cleared → PolygonX restarted"
+                fi
+            else
+                log "FAILED: PolygonX restart failed after cache clear"
+            fi
+            
+            # Extended wait after restart attempt
+            sleep 30
+        fi
+        sleep "$CHECK_INTERVAL"
+    done
+) &
+
+# ==========================
+# Swap Space Monitor & Protector
+# ==========================
 (
     while true; do
-        if ! pidof com.evermorelabs.polygonx > /dev/null; then
-            log "PolygonX not running - attempting to restart service."
-            am startservice --user 0 com.evermorelabs.polygonx/.services.PolygonXService 2>>"$MODDIR/oom_adjuster.log"
+        # Check swap usage to prevent LMKD kills
+        if [ -f /proc/swaps ] && [ -f /proc/meminfo ]; then
+            swap_total=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
+            swap_free=$(grep SwapFree /proc/meminfo | awk '{print $2}')
+            
+            if [ "$swap_total" -gt 1000 ]; then  # Only if swap is configured
+                swap_used=$((swap_total - swap_free))
+                swap_usage_percent=$(( (swap_used * 100) / swap_total ))
+                
+                # If swap is critically low, LMKD will kill aggressively
+                if [ "$swap_usage_percent" -ge 85 ]; then
+                    log "CRITICAL: High swap usage (${swap_usage_percent}%) - clearing to prevent LMKD kills"
+                    
+                    # Emergency memory recovery
+                    echo 3 > /proc/sys/vm/drop_caches
+                    sync
+                    
+                    # Kill some user apps to free swap
+                    pm list packages -3 | cut -d: -f2 | head -3 | while read -r pkg; do
+                        if [ "$pkg" != "com.evermorelabs.polygonx" ] && [ "$pkg" != "com.nianticlabs.pokemongo" ]; then
+                            am force-stop "$pkg" 2>/dev/null && \
+                                log "Freed swap by stopping: $pkg"
+                        fi
+                    done
+                    
+                    # Compact memory to reduce swap usage
+                    cmd activity compact -m full com.nianticlabs.pokemongo 2>/dev/null
+                    cmd activity compact -m full com.evermorelabs.polygonx 2>/dev/null
+                fi
+            fi
         fi
+        
         sleep 30
     done
 ) &
+
+# ==========================
+# PolygonX Anti-Kill Protection
+# ==========================
+(
+    while true; do
+        polygonx_pid=$(pidof com.evermorelabs.polygonx)
+        
+        if [ -n "$polygonx_pid" ]; then
+            # Maximum protection against LMKD
+            echo -1000 > /proc/$polygonx_pid/oom_score_adj 2>/dev/null
+            echo -1000 > /proc/$polygonx_pid/oom_adj 2>/dev/null
+            
+            # Prevent swap pressure kills
+            if [ -f /proc/$polygonx_pid/oom_score ]; then
+                echo 0 > /proc/$polygonx_pid/oom_score 2>/dev/null
+            fi
+            
+            # Keep in foreground cgroups
+            echo $polygonx_pid > /dev/cpuset/foreground/tasks 2>/dev/null
+            echo $polygonx_pid > /dev/stune/foreground/tasks 2>/dev/null
+            
+            # Log protection status occasionally
+            if [ $((RANDOM % 10)) -eq 0 ]; then
+                oom_score=$(cat /proc/$polygonx_pid/oom_score_adj 2>/dev/null || echo "unknown")
+                log "PolygonX protection active (PID: $polygonx_pid, oom_score_adj: $oom_score)"
+            fi
+        fi
+        
+        sleep 20
+    done
+) &
+
 # --------------------------------------------------
 # drop_caches loop (every 30s if RAM usage > 80%)
 (
@@ -142,7 +292,7 @@ prev_pid_pogo=""
         mem_used_kb=$((mem_total_kb - mem_avail_kb))
         mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
 
-        if [ "$mem_usage_percent" -ge 80 ]; then
+        if [ "$mem_usage_percent" -ge 70 ]; then
             echo 3 > /proc/sys/vm/drop_caches
             log "Dropped caches due to high memory usage (${mem_usage_percent}%)"
             sleep_interval=10
@@ -163,7 +313,7 @@ prev_pid_pogo=""
         mem_used_kb=$((mem_total_kb - mem_avail_kb))
         mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
 
-        if [ "$mem_usage_percent" -ge 80 ]; then
+        if [ "$mem_usage_percent" -ge 70 ]; then
             log "Memory usage at ${mem_usage_percent}%. Compacting app memory..."
             cmd activity compact -m some com.nianticlabs.pokemongo 2>/dev/null && \
                 log "Compacted PoGo memory"
@@ -185,7 +335,7 @@ prev_pid_pogo=""
         mem_used_kb=$((mem_total_kb - mem_avail_kb))
         mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
 # --------------------------------------------------
-        if [ "$mem_usage_percent" -ge 80 ]; then
+        if [ "$mem_usage_percent" -ge 75 ]; then
             log "Memory usage at ${mem_usage_percent}%. Running LRU deprioritization."
 # --------------------------------------------------
             dumpsys activity lru | grep -E 'Proc #[0-9]+:' | while read -r line; do
@@ -213,6 +363,55 @@ prev_pid_pogo=""
     done
 ) &
 # --------------------------------------------------
-# --------------------------------------------------
+# ==========================
+# Pokémon GO Memory Killer
+# ==========================
+(
+    POGO_PKG="com.nianticlabs.pokemongo"
+    SYSTEM_MEMORY_THRESHOLD=95    # Kill at 95% system RAM
+    POGO_MEMORY_THRESHOLD=2800    # Kill at 2800MB PoGo usage
+    CHECK_INTERVAL=10
+    
+    log "PoGo memory killer started (System: ${SYSTEM_MEMORY_THRESHOLD}%, PoGo: ${POGO_MEMORY_THRESHOLD}MB)"
+
+    while true; do
+        pogo_pid=$(pidof "$POGO_PKG")
+        if [ -n "$pogo_pid" ]; then
+            # Calculate system memory usage percentage
+            mem_total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+            mem_avail_kb=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+            mem_used_kb=$((mem_total_kb - mem_avail_kb))
+            mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
+            
+            # Get PoGo specific memory usage (in MB)
+            pogo_memory_mb=$(cat /proc/$pogo_pid/status 2>/dev/null | grep VmRSS | awk '{print $2}')
+            pogo_memory_mb=$((pogo_memory_mb / 1024))
+            
+            log "Memory: Total=${mem_usage_percent}%, PoGo=${pogo_memory_mb}MB"
+            
+            # Kill if system memory > 95% OR PoGo using > 2800MB
+            if [ "$mem_usage_percent" -ge "$SYSTEM_MEMORY_THRESHOLD" ] || [ "$pogo_memory_mb" -ge "$POGO_MEMORY_THRESHOLD" ]; then
+                log "KILLING PoGo - System RAM: ${mem_usage_percent}%, PoGo RAM: ${pogo_memory_mb}MB"
+                
+                # Clear PoGo cache before killing
+                cmd package trim-caches com.nianticlabs.pokemongo >> "$LOG_FILE" 2>&1
+                
+                # Kill all PoGo processes aggressively
+                pgrep -f "$POGO_PKG" | while read -r pid; do
+                    kill -9 "$pid" 2>/dev/null
+                done
+                
+                # Force stop any remnants
+                am force-stop "$POGO_PKG" 2>/dev/null
+                
+                # Free system memory
+                echo 3 > /proc/sys/vm/drop_caches
+                
+                log "SUCCESS: PoGo killed and memory freed - PolygonX will restart it"
+            fi
+        fi
+        sleep "$CHECK_INTERVAL"
+    done
+) &
 log "OOM adjustment, cache cleaner, and watchdog started in background."
 exit 0

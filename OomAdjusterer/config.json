@@ -1,6 +1,5 @@
 {
   "protected_apps": [
-    "com.nianticlabs.pokemongo",
     "com.evermorelabs.polygonx"
   ]
 }
