@@ -1,5 +1,12 @@
 {
   "protected_apps": [
     "com.evermorelabs.polygonx"
-  ]
+  ],
+  "enable_phantom_fix": false,
+  "enable_watchdog": false,
+  "pogo_memory_killer": {
+    "enabled": true,
+    "system_memory_threshold": 95,
+    "pogo_memory_threshold_mb": 3200
+  }
 }
