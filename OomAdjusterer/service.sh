@@ -25,35 +25,75 @@ log() {
 
 # Load config values
 load_config() {
+    # Default values
+    protected_apps="com.nianticlabs.pokemongo com.evermorelabs.polygonx"
+    enable_phantom_fix="false"
+    enable_watchdog="false"
+    pause_on_pid_change="true"
+    pause_time=10
+    
+    # PoGo killer defaults
+    KILL_POGO_ENABLED="true"
+    SYSTEM_MEMORY_THRESHOLD=95
+    POGO_MEMORY_THRESHOLD=3000
+
     if [ -f "$CONFIG" ]; then
         log "Loading config from $CONFIG"
         
-        # Load protected apps - more robust parsing
+        # Load protected apps
         protected_apps=$(grep -A 20 '"protected_apps"' "$CONFIG" | grep -o '"[^"]*"' | grep -v '"protected_apps"' | tr -d '"' | tr '\n' ' ')
         
-        # Debug: log what was loaded
-        log "Raw protected apps from config: '$protected_apps'"
+        # Load enable_phantom_fix
+        if grep -q '"enable_phantom_fix":\s*true' "$CONFIG"; then
+            enable_phantom_fix="true"
+            log "phantom_fix enabled in config"
+        fi
         
-        # Set default values
-        pause_on_pid_change="true"
-        pause_time=10
+        # Load enable_watchdog
+        if grep -q '"enable_watchdog":\s*true' "$CONFIG"; then
+            enable_watchdog="true"
+            log "watchdog enabled in config"
+        fi
+        
+        # Load PoGo killer settings
+        if grep -q '"pogo_memory_killer"' "$CONFIG"; then
+            # Check if enabled
+            if grep -q '"enabled":\s*false' "$CONFIG"; then
+                KILL_POGO_ENABLED="false"
+                log "PoGo memory killer disabled in config"
+            fi
+            
+            # Load system memory threshold
+            sys_thresh=$(grep -o '"system_memory_threshold":\s*[0-9]*' "$CONFIG" | grep -o '[0-9]*$')
+            if [ -n "$sys_thresh" ]; then
+                SYSTEM_MEMORY_THRESHOLD="$sys_thresh"
+                log "Custom system threshold: ${SYSTEM_MEMORY_THRESHOLD}%"
+            fi
+            
+            # Load PoGo memory threshold
+            pogo_thresh=$(grep -o '"pogo_memory_threshold_mb":\s*[0-9]*' "$CONFIG" | grep -o '[0-9]*$')
+            if [ -n "$pogo_thresh" ]; then
+                POGO_MEMORY_THRESHOLD="$pogo_thresh"
+                log "Custom PoGo threshold: ${POGO_MEMORY_THRESHOLD}MB"
+            fi
+        fi
         
     else
-        log "Config file not found at $CONFIG"
-        # Default values
-        protected_apps="com.nianticlabs.pokemongo com.evermorelabs.polygonx"
-        pause_on_pid_change="true"
-        pause_time=10
+        log "Config file not found at $CONFIG - using defaults"
     fi
     
     log "Final protected apps: '$protected_apps'"
+    log "Settings - phantom_fix: $enable_phantom_fix, watchdog: $enable_watchdog"
+    log "PoGo killer - enabled: $KILL_POGO_ENABLED, system: ${SYSTEM_MEMORY_THRESHOLD}%, pogo: ${POGO_MEMORY_THRESHOLD}MB"
 }
 
-# Launch phantom fix
-#if [ -f "$MODDIR/phantom_fix.sh" ]; then
-#    sh "$MODDIR/phantom_fix.sh" &
-#    log "Phantom fix started"
-#fi
+# Launch phantom fix (only if enabled in config)
+if [ "$enable_phantom_fix" = "true" ] && [ -f "$MODDIR/phantom_fix.sh" ]; then
+    sh "$MODDIR/phantom_fix.sh" &
+    log "Phantom fix started (enabled in config)"
+elif [ "$enable_phantom_fix" = "true" ] && [ ! -f "$MODDIR/phantom_fix.sh" ]; then
+    log "WARNING: phantom_fix enabled but phantom_fix.sh not found"
+fi
 
 # Load config
 load_config
@@ -130,15 +170,16 @@ prev_pid_pogo=""
     done
 ) &
 # ==========================
-# PolygonX Watchdog with Dual Cache Clear & PoGo Kill on LMKD Recovery
+# PolygonX Watchdog (only if enabled in config)
 # ==========================
+if [ "$enable_watchdog" = "true" ]; then
 (
     APP_PKG="com.evermorelabs.polygonx"
     POGO_PKG="com.nianticlabs.pokemongo"
     CHECK_INTERVAL=35
     RESTART_DELAY=15
 
-    log "PolygonX watchdog started with dual cache clear & PoGo kill on LMKD recovery."
+    log "PolygonX watchdog started (enabled in config)"
 
     while true; do
         if ! pidof "$APP_PKG" > /dev/null; then
@@ -209,6 +250,9 @@ prev_pid_pogo=""
         sleep "$CHECK_INTERVAL"
     done
 ) &
+else
+    log "PolygonX watchdog disabled in config"
+fi
 
 # ==========================
 # Swap Space Monitor & Protector
@@ -326,7 +370,7 @@ prev_pid_pogo=""
         sleep 60
     done
 ) &
-# --------------------------------------------------
+
 # LRU memory deprioritizer loop with 80% RAM usage threshold
 (
     while true; do
@@ -334,15 +378,15 @@ prev_pid_pogo=""
         mem_avail_kb=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
         mem_used_kb=$((mem_total_kb - mem_avail_kb))
         mem_usage_percent=$(( (mem_used_kb * 100) / mem_total_kb ))
-# --------------------------------------------------
+
         if [ "$mem_usage_percent" -ge 75 ]; then
             log "Memory usage at ${mem_usage_percent}%. Running LRU deprioritization."
-# --------------------------------------------------
+
             dumpsys activity lru | grep -E 'Proc #[0-9]+:' | while read -r line; do
                 pkg=$(echo "$line" | sed -n 's/.*ProcessRecord{[^ ]* [^ ]* \([^ ]*\)\/[^ ]*} .*/\1/p')
                 proc_state=$(echo "$line" | grep -oE 'procState=[0-9]+' | cut -d= -f2)
                 pid=$(echo "$line" | grep -oE 'pid=[0-9]+' | cut -d= -f2)
-# --------------------------------------------------
+
                 if [ -n "$proc_state" ] && [ -n "$pid" ] && [ -n "$pkg" ]; then
                     if [ "$proc_state" -eq 19 ]; then
                         # Processes with a procstate of 19 will be force stopped
@@ -358,24 +402,20 @@ prev_pid_pogo=""
         else
             log "Memory usage at ${mem_usage_percent}%. Skipping LRU scan."
         fi
-# --------------------------------------------------
+
         sleep 60
     done
 ) &
-# --------------------------------------------------
+
 # ==========================
-# Pokémon GO Memory Killer
+# Pokémon GO Memory Killer (only if enabled)
 # ==========================
+if [ "$KILL_POGO_ENABLED" = "true" ]; then
 (
-    POGO_PKG="com.nianticlabs.pokemongo"
-    SYSTEM_MEMORY_THRESHOLD=95    # Kill at 95% system RAM
-    POGO_MEMORY_THRESHOLD=2800    # Kill at 2800MB PoGo usage
-    CHECK_INTERVAL=10
-    
     log "PoGo memory killer started (System: ${SYSTEM_MEMORY_THRESHOLD}%, PoGo: ${POGO_MEMORY_THRESHOLD}MB)"
 
     while true; do
-        pogo_pid=$(pidof "$POGO_PKG")
+        pogo_pid=$(pidof "com.nianticlabs.pokemongo")
         if [ -n "$pogo_pid" ]; then
             # Calculate system memory usage percentage
             mem_total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -389,7 +429,7 @@ prev_pid_pogo=""
             
             log "Memory: Total=${mem_usage_percent}%, PoGo=${pogo_memory_mb}MB"
             
-            # Kill if system memory > 95% OR PoGo using > 2800MB
+            # Kill if system memory > threshold OR PoGo using > threshold
             if [ "$mem_usage_percent" -ge "$SYSTEM_MEMORY_THRESHOLD" ] || [ "$pogo_memory_mb" -ge "$POGO_MEMORY_THRESHOLD" ]; then
                 log "KILLING PoGo - System RAM: ${mem_usage_percent}%, PoGo RAM: ${pogo_memory_mb}MB"
                 
@@ -397,21 +437,24 @@ prev_pid_pogo=""
                 cmd package trim-caches com.nianticlabs.pokemongo >> "$LOG_FILE" 2>&1
                 
                 # Kill all PoGo processes aggressively
-                pgrep -f "$POGO_PKG" | while read -r pid; do
+                pgrep -f "com.nianticlabs.pokemongo" | while read -r pid; do
                     kill -9 "$pid" 2>/dev/null
                 done
                 
                 # Force stop any remnants
-                am force-stop "$POGO_PKG" 2>/dev/null
+                am force-stop "com.nianticlabs.pokemongo" 2>/dev/null
                 
                 # Free system memory
                 echo 3 > /proc/sys/vm/drop_caches
                 
-                log "SUCCESS: PoGo killed and memory freed - PolygonX will restart it"
+                log "SUCCESS: PoGo killed and memory freed"
             fi
         fi
-        sleep "$CHECK_INTERVAL"
+        sleep 10
     done
 ) &
+else
+    log "PoGo memory killer disabled in config"
+fi
 log "OOM adjustment, cache cleaner, and watchdog started in background."
 exit 0

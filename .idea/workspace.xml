@@ -6,8 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="6b4a635f-a516-4cfa-ab35-1d9c8cf24331" name="Changes" comment="Added module to repo">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/OomAdjusterer/META-INF/com/google/android/update-binary" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/META-INF/com/google/android/update-binary" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/OomAdjusterer/META-INF/com/google/android/updater-script" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/META-INF/com/google/android/updater-script" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OomAdjusterer/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OomAdjusterer/module.prop" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/module.prop" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OomAdjusterer/service.sh" beforeDir="false" afterPath="$PROJECT_DIR$/OomAdjusterer/service.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +61,8 @@
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/system_ext/etc/build_flags.json" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/system_ext/etc/pixelworks_apps.xml" root0="SKIP_INSPECTION" />
     <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/OnePlus IN2013/_/system_ext/etc/spn-conf.xml" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/Xiaomi 21081111RG/_/data/adb/modules/oom_adjuster/oom_adjuster.log" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/AppData/Local/Google/AndroidStudio2023.3/device-explorer/Xiaomi 21081111RG/_/storage/sdcard0/zram_optimizer.log" root0="SKIP_INSPECTION" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -72,21 +75,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "ScreenRecorder.SavePath": "C:\\Users\\pontu\\Desktop\\Polygon\\polygonX",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "com.google.services.firebase.aqiPopupShown": "true",
-    "git-widget-placeholder": "update",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/pontu/Desktop/MagiskModule/OomAdjusterer-hotfix/OomAdjusterer_v8.371.zip"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;ScreenRecorder.SavePath&quot;: &quot;C:\\Users\\pontu\\Desktop\\Polygon\\polygonX&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;update&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/pontu/Desktop/Polygon/polygonX&quot;
   }
-}]]></component>
+}</component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">

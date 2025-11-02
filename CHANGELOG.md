@@ -1,3 +1,8 @@
+Version 9.1
+- Configurable features: Enable/disable watchdog and phantom_fix.sh via config.json
+- Customizable thresholds: Adjust Pokémon GO Memory killer values in config.json
+- Config location: /data/adb/modules/oom_adjuster/config.json
+
 Version 9
 Update for texture heavy events.
 - Pokémon GO Memory Killer, Automatically kills PoGo when memory usage exceeds thresholds (95% system RAM or 2800MB PoGo usage)
