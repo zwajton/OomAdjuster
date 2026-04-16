@@ -2,7 +2,6 @@
   "protected_apps": [
     "com.evermorelabs.polygonx"
   ],
-  "enable_phantom_fix": false,
   "enable_watchdog": false,
   "pogo_memory_killer": {
     "enabled": true,

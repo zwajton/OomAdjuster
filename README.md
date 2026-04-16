@@ -16,12 +16,11 @@ It works by:
 * Locking OOM Score: Sets oom_score_adj to -1000 for PolygonX, making it the least likely to be killed by the system.
 * CPU Priority: Increases the CPU priority using renice for smoother performance.
 * CGroup Boost: Moves the app to the top-app CPU and scheduler groups.
-* ~~Phantom Process Tweaks: Applies system tweaks to allow more cached/phantom processes and prevent aggressive background process killing (especially on Android 10+).~~
 * Cache Management: Monitors RAM usage and automatically drops system caches if memory usage exceeds 80%.
 * App Compaction: Compacts app memory when RAM is high.
-* LRU Deprioritization: Every 60 seconds, scans for background/empty processes and either deprioritizes or force-stops them to keep more memory available for Pokémon GO and PolygonX.
+* LRU Deprioritization: Every 60 seconds, scans for background/empty processes and either deprioritizes or force-stops them to free memory. PolygonX and Pokémon GO are always excluded from this.
 * Watchdog: Restarts PolygonX if it crashes or is killed.
-* Pokémon Go memory killer (95% system RAM or 2800MB PoGo usage)
+* Pokémon GO memory killer: kills PoGo when system RAM exceeds 95% or PoGo usage exceeds 3000MB (configurable in config.json).
 All actions are logged to /data/adb/modules/oom_adjuster/oom_adjuster.log for troubleshooting.
 
 ### Install
