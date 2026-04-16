@@ -1,3 +1,9 @@
+Version 10
+- Removed phantom_fix.sh and phantom_fix.sh feature entirely (was disabled by default and unused)
+- Fixed LRU deprioritizer: PolygonX and Pokémon GO are now always excluded from force-stop and oom_score_adj changes
+- Fixed PolygonX anti-kill block: removed dead oom_score write (read-only in kernel) and replaced bash-only $RANDOM with a compatible counter
+- Updated PoGo memory killer default threshold in docs to match actual value (3000MB)
+
 Version 9.1
 - Configurable features: Enable/disable watchdog and phantom_fix.sh via config.json
 - Customizable thresholds: Adjust Pokémon GO Memory killer values in config.json
