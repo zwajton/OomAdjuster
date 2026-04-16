@@ -27,7 +27,6 @@ log() {
 load_config() {
     # Default values
     protected_apps="com.nianticlabs.pokemongo com.evermorelabs.polygonx"
-    enable_phantom_fix="false"
     enable_watchdog="false"
     pause_on_pid_change="true"
     pause_time=10
@@ -42,12 +41,6 @@ load_config() {
         
         # Load protected apps
         protected_apps=$(grep -A 20 '"protected_apps"' "$CONFIG" | grep -o '"[^"]*"' | grep -v '"protected_apps"' | tr -d '"' | tr '\n' ' ')
-        
-        # Load enable_phantom_fix
-        if grep -q '"enable_phantom_fix":\s*true' "$CONFIG"; then
-            enable_phantom_fix="true"
-            log "phantom_fix enabled in config"
-        fi
         
         # Load enable_watchdog
         if grep -q '"enable_watchdog":\s*true' "$CONFIG"; then
@@ -83,24 +76,14 @@ load_config() {
     fi
     
     log "Final protected apps: '$protected_apps'"
-    log "Settings - phantom_fix: $enable_phantom_fix, watchdog: $enable_watchdog"
+    log "Settings - watchdog: $enable_watchdog"
     log "PoGo killer - enabled: $KILL_POGO_ENABLED, system: ${SYSTEM_MEMORY_THRESHOLD}%, pogo: ${POGO_MEMORY_THRESHOLD}MB"
 }
-
-# Launch phantom fix (only if enabled in config)
-if [ "$enable_phantom_fix" = "true" ] && [ -f "$MODDIR/phantom_fix.sh" ]; then
-    sh "$MODDIR/phantom_fix.sh" &
-    log "Phantom fix started (enabled in config)"
-elif [ "$enable_phantom_fix" = "true" ] && [ ! -f "$MODDIR/phantom_fix.sh" ]; then
-    log "WARNING: phantom_fix enabled but phantom_fix.sh not found"
-fi
 
 # Load config
 load_config
 
 log "Starting OOM adjustment..."
-# Phantom process tweaks are handled by phantom_fix.sh (keep single source of truth)
-# --------------------------------------------------
 # pause_on_pid_change=true
 prev_pid_pogo=""
 # Main loop variables
@@ -299,6 +282,7 @@ fi
 # PolygonX Anti-Kill Protection
 # ==========================
 (
+    _pgx_log_counter=0
     while true; do
         polygonx_pid=$(pidof com.evermorelabs.polygonx)
         
@@ -306,18 +290,14 @@ fi
             # Maximum protection against LMKD
             echo -1000 > /proc/$polygonx_pid/oom_score_adj 2>/dev/null
             echo -1000 > /proc/$polygonx_pid/oom_adj 2>/dev/null
-            
-            # Prevent swap pressure kills
-            if [ -f /proc/$polygonx_pid/oom_score ]; then
-                echo 0 > /proc/$polygonx_pid/oom_score 2>/dev/null
-            fi
-            
+
             # Keep in foreground cgroups
             echo $polygonx_pid > /dev/cpuset/foreground/tasks 2>/dev/null
             echo $polygonx_pid > /dev/stune/foreground/tasks 2>/dev/null
-            
-            # Log protection status occasionally
-            if [ $((RANDOM % 10)) -eq 0 ]; then
+
+            # Log protection status every ~10 cycles
+            _pgx_log_counter=$((_pgx_log_counter + 1))
+            if [ $((_pgx_log_counter % 10)) -eq 0 ]; then
                 oom_score=$(cat /proc/$polygonx_pid/oom_score_adj 2>/dev/null || echo "unknown")
                 log "PolygonX protection active (PID: $polygonx_pid, oom_score_adj: $oom_score)"
             fi
@@ -388,6 +368,10 @@ fi
                 pid=$(echo "$line" | grep -oE 'pid=[0-9]+' | cut -d= -f2)
 
                 if [ -n "$proc_state" ] && [ -n "$pid" ] && [ -n "$pkg" ]; then
+                    # Never touch protected apps
+                    if [ "$pkg" = "com.evermorelabs.polygonx" ] || [ "$pkg" = "com.nianticlabs.pokemongo" ]; then
+                        continue
+                    fi
                     if [ "$proc_state" -eq 19 ]; then
                         # Processes with a procstate of 19 will be force stopped
                         am force-stop "$pkg" && \
