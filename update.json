@@ -1,6 +1,6 @@
 {
-  "version": "10",
-  "versionCode": 100,
-  "zipUrl": "https://github.com/zwajton/OomAdjuster/releases/download/v10/oom_adjuster_v10.zip",
+  "version": "10.5",
+  "versionCode": 105,
+  "zipUrl": "https://github.com/zwajton/OomAdjuster/releases/download/v10.5/oom_adjuster_v10.5.zip",
   "changelog": "https://raw.githubusercontent.com/zwajton/OomAdjuster/main/CHANGELOG.md"
 }
