@@ -1,3 +1,6 @@
+Version 10.5
+- Rewrite of script
+
 Version 10
 - Removed phantom_fix.sh and phantom_fix.sh feature entirely (was disabled by default and unused)
 - Fixed LRU deprioritizer: PolygonX and Pokémon GO are now always excluded from force-stop and oom_score_adj changes
