@@ -30,23 +30,36 @@ else
     log "No config at $CONFIG — using defaults"
 fi
 
-# ── Loop 1: OOM protection — every 100ms ────────────────────────────────────
-# Sets oom_score_adj=-1000, top-app cgroup, and renice for every protected app.
-# Hardcoded loop — does not depend on config parsing being correct.
-(
-    while true; do
-        for _pkg in $protected_apps; do
-            _pid=$(pidof "$_pkg")
-            [ -z "$_pid" ] && continue
-            echo -1000 > /proc/$_pid/oom_score_adj 2>/dev/null
-            echo -1000 > /proc/$_pid/oom_adj 2>/dev/null
-            echo "$_pid" > /dev/cpuset/top-app/tasks 2>/dev/null
-            echo "$_pid" > /dev/stune/top-app/tasks 2>/dev/null
-            renice -18 -p "$_pid" 2>/dev/null
+# ── OOM guardian daemon ──────────────────────────────────────────────────────
+# Prefer the native C daemon; fall back to the shell loop if unavailable.
+_arch=$(uname -m)
+case "$_arch" in
+    aarch64)       _guardian="$MODDIR/bin/oom_guardian_arm64" ;;
+    armv7*|armv8l) _guardian="$MODDIR/bin/oom_guardian_arm"   ;;
+    *)             _guardian=""                                ;;
+esac
+
+[ -n "$_guardian" ] && [ -f "$_guardian" ] && chmod 755 "$_guardian" 2>/dev/null
+if [ -n "$_guardian" ] && [ -x "$_guardian" ]; then
+    "$_guardian" &
+    log "oom_guardian started (arch: $_arch, pid: $!)"
+else
+    log "oom_guardian not found for arch: $_arch — using shell loop"
+    (
+        while true; do
+            for _pkg in $protected_apps; do
+                _pid=$(pidof "$_pkg")
+                [ -z "$_pid" ] && continue
+                echo -1000 > /proc/$_pid/oom_score_adj 2>/dev/null
+                echo -1000 > /proc/$_pid/oom_adj 2>/dev/null
+                echo "$_pid" > /dev/cpuset/top-app/tasks 2>/dev/null
+                echo "$_pid" > /dev/stune/top-app/tasks 2>/dev/null
+                renice -18 -p "$_pid" 2>/dev/null
+            done
+            sleep 0.1
         done
-        sleep 0.1
-    done
-) &
+    ) &
+fi
 
 # ── Loop 2: Memory management — every 10s ───────────────────────────────────
 # Reads /proc/meminfo once per cycle. Handles drop_caches, compaction,
