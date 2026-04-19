@@ -39,6 +39,7 @@ case "$_arch" in
     *)             _guardian=""                                ;;
 esac
 
+[ -n "$_guardian" ] && [ -f "$_guardian" ] && chmod 755 "$_guardian" 2>/dev/null
 if [ -n "$_guardian" ] && [ -x "$_guardian" ]; then
     "$_guardian" &
     log "oom_guardian started (arch: $_arch, pid: $!)"
