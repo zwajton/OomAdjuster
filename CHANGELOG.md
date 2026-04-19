@@ -1,3 +1,9 @@
+Version 11
+- Replaced the 100ms shell OOM-protection loop with a native C daemon (oom_guardian), statically compiled for arm64 and arm32
+- The daemon writes directly to /proc — no process forking, no shell overhead, immune to memory pressure stalls
+- Shell loop is kept as an automatic fallback for unsupported architectures
+- Added .gitattributes to enforce LF line endings and prevent boot failures on Windows-built zips
+
 Version 10.5
 - Rewrite of script
 
