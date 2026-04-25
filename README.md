@@ -110,3 +110,9 @@ The legacy `protected_apps` field is still supported for backward compatibility.
 3. Go to **Modules → Install from storage**
 4. Select the downloaded zip
 5. Reboot
+
+
+## Credits
+
+
+**Credit:** [Furtif](https://github.com/Furtif) for the ART blockage fix.
