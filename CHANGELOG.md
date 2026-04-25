@@ -1,3 +1,20 @@
+Version 11.5
+WebUI
+- Added WebUI accessible via the action button in KernelSU, APatch, Magisk, and compatible managers
+- Apps tab: toggle per-app protection tier (Off / -999 Restartable / -1000 Critical); suggested app list with one-tap enable; custom package field saves immediately on Add
+- Device tab: phone model, Android version, kernel, security patch, live oom_guardian daemon status, and per-app oom_score_adj readout
+- ART tab: dynamically detects installed APEX version at runtime (no hardcoded version strings); shows package status for com.android.art and com.google.android.art
+- ART uninstall: tries pm uninstall without --user 0 first (required for APEX packages), falls back to --user 0 for regular packages
+- ART uninstall: after uninstall, disables com.google.android.modulemetadata if present; on Android 15+ (API 35) also disables GMS SystemUpdateService and GmsIntentOperationService to prevent silent ART reinstall
+- ART uninstall: full debug output shown inline so every command and its result is visible
+- action.sh: opens WebUI in KSU WebUI Standalone, WebUI X, or MMRL (in that order); auto-downloads and installs KSU WebUI Standalone if none are found
+
+OOM scoring
+- Two-tier protection: critical apps get -1000 (never killed by kernel), restartable apps get -999 (can be killed and restarted by root tools)
+- oom_guardian daemon rewritten to apply both tiers natively in C
+- Shell fallback loop updated to match two-tier behaviour
+- config.conf: protected_apps split into protected_apps_critical and protected_apps_restartable; legacy protected_apps field still honoured for backward compatibility
+
 Version 11
 - Replaced the 100ms shell OOM-protection loop with a native C daemon (oom_guardian), statically compiled for arm64 and arm32
 - The daemon writes directly to /proc — no process forking, no shell overhead, immune to memory pressure stalls
