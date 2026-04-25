@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>OOM Adjuster</title>
+<style>
+:root {
+  --bg:         #0f0f0f;
+  --surface:    #1a1a1a;
+  --surface2:   #252525;
+  --border:     #2e2e2e;
+  --text:       #e0e0e0;
+  --text-dim:   #808080;
+  --accent:     #4fc3f7;
+  --red:        #ef5350;
+  --yellow:     #ffd54f;
+  --green:      #66bb6a;
+  --orange:     #ffa726;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.version-badge {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 49px;
+  z-index: 19;
+}
+.tab {
+  flex: 1;
+  padding: 11px 4px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Layout ──────────────────────────────────────────────────────────── */
+.content { padding: 14px 14px 40px; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 12px;
+}
+.card-danger { border-color: rgba(239,83,80,0.3); }
+
+/* ── App rows ────────────────────────────────────────────────────────── */
+.app-item {
+  display: flex;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.app-item:last-child { border-bottom: none; padding-bottom: 0; }
+.app-item:first-child { padding-top: 0; }
+.app-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.app-info { flex: 1; min-width: 0; }
+.app-name { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-pkg  { font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+
+.tier-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  padding: 5px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 58px;
+  text-align: center;
+}
+.tier-select.tier-critical    { border-color: var(--red);    color: var(--red);    }
+.tier-select.tier-restartable { border-color: var(--yellow); color: var(--yellow); }
+
+/* ── Info rows ───────────────────────────────────────────────────────── */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+.info-row:last-child  { border-bottom: none; padding-bottom: 0; }
+.info-row:first-child { padding-top: 0; }
+.info-label { color: var(--text-dim); flex-shrink: 0; }
+.info-value { font-weight: 500; text-align: right; word-break: break-all; font-size: 13px; }
+
+/* ── Badges ──────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-critical    { background: rgba(239,83,80,0.15);  color: var(--red);    }
+.badge-restartable { background: rgba(255,213,79,0.15); color: var(--yellow); }
+.badge-ok          { background: rgba(102,187,106,0.15);color: var(--green);  }
+.badge-warn        { background: rgba(255,167,38,0.15); color: var(--orange); }
+.badge-off         { background: var(--surface2);       color: var(--text-dim);}
+
+/* ── Status dot ──────────────────────────────────────────────────────── */
+.dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.dot-green { background: var(--green); }
+.dot-red   { background: var(--red);   }
+.dot-gray  { background: var(--text-dim); }
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn:active  { opacity: 0.75; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.btn-primary   { background: var(--accent); color: #000; margin-top: 4px; }
+.btn-danger    { background: var(--red);    color: #fff; }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ── Add custom row ──────────────────────────────────────────────────── */
+.add-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.input::placeholder { color: var(--text-dim); }
+.input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2e2e2e;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  max-width: 86%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.show { opacity: 1; }
+
+/* ── Spinner ─────────────────────────────────────────────────────────── */
+.loading {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 20px;
+  font-size: 13px;
+}
+
+/* ── Remove button ───────────────────────────────────────────────────── */
+.remove-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.remove-btn:active { color: var(--red); border-color: var(--red); }
+
+/* ── Section separator label ─────────────────────────────────────────── */
+.sep-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 0 4px;
+}
+
+/* ── Tier legend ─────────────────────────────────────────────────────── */
+.legend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+.legend-row + .legend-row { margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>OOM Adjuster</h1>
+  <span class="version-badge" id="modVersion">v11</span>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('apps')">Apps</button>
+  <button class="tab" onclick="switchTab('device')">Device</button>
+  <button class="tab" onclick="switchTab('art')">ART</button>
+</div>
+
+<div class="content">
+
+  <!-- ── APPS TAB ──────────────────────────────────────────────────── -->
+  <div class="section active" id="section-apps">
+
+    <div class="card">
+      <div class="card-title">Protection tiers</div>
+      <div class="legend-row">
+        <span class="badge badge-critical">-1000 Critical</span>
+        <span style="color:var(--text-dim);font-size:12px">Never killed by kernel</span>
+      </div>
+      <div class="legend-row">
+        <span class="badge badge-restartable">-999 Restartable</span>
+        <span style="color:var(--text-dim);font-size:12px">Killed &amp; restarted by root apps</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Add custom app</div>
+      <div class="add-row">
+        <input class="input" id="customPkg"
+               placeholder="com.example.app"
+               autocomplete="off" autocapitalize="none" spellcheck="false">
+        <select class="tier-select tier-critical" id="customTier"
+                onchange="this.className='tier-select '+tierClass(this.value)">
+          <option value="critical">-1000</option>
+          <option value="restartable">-999</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:8px" onclick="addCustomApp()">Add &amp; Save</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Suggested apps</div>
+      <div id="suggestedList"><div class="loading">Loading…</div></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveConfig()">Save &amp; Apply</button>
+  </div>
+
+  <!-- ── DEVICE TAB ────────────────────────────────────────────────── -->
+  <div class="section" id="section-device">
+    <div class="card">
+      <div class="card-title">Device information</div>
+      <div id="deviceInfo"><div class="loading">Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Guardian status</div>
+      <div id="guardianStatus"><div class="loading">Checking…</div></div>
+    </div>
+  </div>
+
+  <!-- ── ART TAB ───────────────────────────────────────────────────── -->
+  <div class="section" id="section-art">
+    <div class="card">
+      <div class="card-title">ART package status</div>
+      <div id="artStatus"><div class="loading">Checking…</div></div>
+      <button class="btn btn-secondary" style="margin-top:12px" onclick="loadArtStatus()">Refresh</button>
+    </div>
+    <div class="card card-danger">
+      <div class="card-title" style="color:var(--red)">Danger zone</div>
+      <p style="color:var(--text-dim);font-size:12px;line-height:1.5;margin-bottom:12px">
+        Uninstalling ART downgrades the runtime to the built-in version.
+        Only do this if you know what you're doing. A reboot is required afterwards.
+      </p>
+      <button class="btn btn-danger" id="uninstallArtBtn" onclick="uninstallArt()">
+        Uninstall ART packages
+      </button>
+      <pre id="artDebug" style="display:none;margin-top:12px;background:var(--surface2);border-radius:8px;padding:10px;font-size:11px;color:var(--green);white-space:pre-wrap;word-break:break-all;line-height:1.5;"></pre>
+    </div>
+  </div>
+
+</div><!-- .content -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ─── KernelSU native bridge wrapper ────────────────────────────────────────
+// KernelSU injects a global `ksu` object whose exec() is callback-based:
+//   ksu.exec(cmd, optionsJson, callbackName)
+// The callback is placed on window[callbackName] and called with (errno, stdout, stderr).
+// We wrap this into a Promise here, mirroring the kernelsu npm package.
+
+let _ksuCbId = 0;
+function _uniqueCb() { return '__ksucb_' + (++_ksuCbId); }
+
+function ksuExec(cmd, options) {
+  if (typeof ksu === 'undefined') {
+    // Not inside KernelSU WebView — return empty result (dev/test mode)
+    console.log('[ksu mock]', cmd);
+    return Promise.resolve({ errno: 0, stdout: '', stderr: '' });
+  }
+  return new Promise((resolve, reject) => {
+    const cb = _uniqueCb();
+    window[cb] = (errno, stdout, stderr) => {
+      resolve({ errno, stdout, stderr });
+      delete window[cb];
+    };
+    try {
+      ksu.exec(cmd, JSON.stringify(options ?? {}), cb);
+    } catch (e) {
+      reject(e);
+      delete window[cb];
+    }
+  });
+}
+
+const MODDIR = '/data/adb/modules/oom_adjuster';
+const CONFIG  = MODDIR + '/config.conf';
+
+// ─── Suggested app catalogue ────────────────────────────────────────────────
+const SUGGESTED = [
+  { name: 'PolygonX',     pkg: 'com.evermorelabs.polygonx',       icon: '🔷', def: 'critical'    },
+  { name: 'Pokémon GO',   pkg: 'com.nianticlabs.pokemongo',        icon: '🎮', def: 'restartable' },
+  { name: 'GPS Joystick', pkg: 'com.theappninjas.fakegpsjoystick', icon: '📍', def: 'critical'    },
+  { name: 'AnyDesk',      pkg: 'com.anydesk.anydeskandroid',       icon: '🖥️', def: 'critical'    },
+  { name: 'YAMLA',        pkg: 'com.evermorelabs.yamla',           icon: '📡', def: 'critical'    },
+];
+const SUGGESTED_PKGS = new Set(SUGGESTED.map(a => a.pkg));
+
+// ─── State ──────────────────────────────────────────────────────────────────
+// appState: pkg → 'critical' | 'restartable' | (absent = off)
+let appState  = {};
+let extraConf = {
+  enable_watchdog:           'false',
+  enable_pogo_killer:        'true',
+  system_memory_threshold:   '95',
+  pogo_memory_threshold_mb:  '3200',
+};
+let deviceTabLoaded   = false;
+let artTabLoaded      = false;
+
+// ─── UI helpers ─────────────────────────────────────────────────────────────
+function showToast(msg, ms = 2600) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function tierClass(tier) {
+  if (tier === 'critical')    return 'tier-critical';
+  if (tier === 'restartable') return 'tier-restartable';
+  return '';
+}
+
+function switchTab(name) {
+  const tabs = ['apps', 'device', 'art'];
+  document.querySelectorAll('.tab').forEach((el, i) =>
+    el.classList.toggle('active', tabs[i] === name));
+  document.querySelectorAll('.section').forEach(el =>
+    el.classList.toggle('active', el.id === 'section-' + name));
+
+  if (name === 'device' && !deviceTabLoaded) { loadDeviceInfo(); deviceTabLoaded = true; }
+  if (name === 'art'    && !artTabLoaded)    { loadArtStatus();  artTabLoaded    = true; }
+}
+
+// ─── Config I/O ─────────────────────────────────────────────────────────────
+function parseConfig(raw) {
+  const result = { critical: [], restartable: [], legacy: [], extra: {} };
+  for (const rawLine of raw.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    const val = line.slice(eq + 1).trim().replace(/^"|"$/g, '');
+
+    if      (key === 'protected_apps_critical')    result.critical    = val.split(/\s+/).filter(Boolean);
+    else if (key === 'protected_apps_restartable') result.restartable = val.split(/\s+/).filter(Boolean);
+    else if (key === 'protected_apps')             result.legacy      = val.split(/\s+/).filter(Boolean);
+    else                                           result.extra[key]  = val;
+  }
+  if (!result.critical.length && result.legacy.length)
+    result.critical = result.legacy; // backward compat
+  return result;
+}
+
+async function loadConfig() {
+  const { stdout } = await ksuExec('cat "' + CONFIG + '" 2>/dev/null || true');
+  const parsed = parseConfig(stdout);
+  appState  = {};
+  parsed.critical.forEach(p    => { appState[p] = 'critical'; });
+  parsed.restartable.forEach(p => { appState[p] = 'restartable'; });
+  extraConf = { ...extraConf, ...parsed.extra };
+}
+
+
+async function saveConfig() {
+  const critical    = Object.entries(appState).filter(([,t]) => t === 'critical').map(([p]) => p).join(' ');
+  const restartable = Object.entries(appState).filter(([,t]) => t === 'restartable').map(([p]) => p).join(' ');
+
+  // Write line by line — avoids btoa/base64 issues entirely.
+  // Package names and config values are always ASCII-safe for single-quote wrapping.
+  let cmd = "printf '' > '" + CONFIG + "'";
+  cmd += "\necho '# OOM Adjuster config — managed by WebUI' >> '" + CONFIG + "'";
+  cmd += "\necho 'protected_apps_critical=\"" + critical    + "\"' >> '" + CONFIG + "'";
+  cmd += "\necho 'protected_apps_restartable=\"" + restartable + "\"' >> '" + CONFIG + "'";
+  for (const [k, v] of Object.entries(extraConf)) {
+    cmd += "\necho '" + k + '=' + v + "' >> '" + CONFIG + "'";
+  }
+
+  const { errno, stderr } = await ksuExec(cmd);
+  if (errno !== 0) showToast('Error saving: ' + stderr);
+  else             showToast('✓ Config saved');
+}
+
+// ─── App list rendering ──────────────────────────────────────────────────────
+function makeAppRow(name, pkg, icon, tier) {
+  const div = document.createElement('div');
+  div.className = 'app-item';
+
+  const sel = document.createElement('select');
+  sel.className = 'tier-select ' + tierClass(tier);
+  sel.innerHTML =
+    '<option value="off"'         + (tier === 'off'         ? ' selected' : '') + '>Off</option>' +
+    '<option value="restartable"' + (tier === 'restartable' ? ' selected' : '') + '>-999</option>' +
+    '<option value="critical"'    + (tier === 'critical'    ? ' selected' : '') + '>-1000</option>';
+  sel.addEventListener('change', () => {
+    const t = sel.value;
+    if (t === 'off') delete appState[pkg]; else appState[pkg] = t;
+    sel.className = 'tier-select ' + tierClass(t);
+  });
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-btn';
+  removeBtn.textContent = '✕';
+  removeBtn.title = 'Remove from protection';
+  removeBtn.addEventListener('click', async () => {
+    delete appState[pkg];
+    renderAppList();
+    await saveConfig();
+  });
+
+  div.innerHTML =
+    '<div class="app-icon">' + icon + '</div>' +
+    '<div class="app-info">' +
+      '<div class="app-name">' + name + '</div>' +
+      '<div class="app-pkg">'  + pkg  + '</div>' +
+    '</div>';
+  div.appendChild(sel);
+  div.appendChild(removeBtn);
+  return div;
+}
+
+function renderAppList() {
+  const container = document.getElementById('suggestedList');
+  container.innerHTML = '';
+
+  // Suggested apps
+  SUGGESTED.forEach(app => {
+    container.appendChild(makeAppRow(app.name, app.pkg, app.icon,
+      appState[app.pkg] ?? 'off'));
+  });
+
+  // Custom apps (not in suggested list)
+  const customPkgs = Object.keys(appState).filter(p => !SUGGESTED_PKGS.has(p));
+  if (customPkgs.length) {
+    const sep = document.createElement('div');
+    sep.className = 'sep-label';
+    sep.textContent = 'Custom';
+    container.appendChild(sep);
+    customPkgs.forEach(pkg =>
+      container.appendChild(makeAppRow(pkg, pkg, '📦', appState[pkg])));
+  }
+}
+
+async function addCustomApp() {
+  const input = document.getElementById('customPkg');
+  const pkg   = input.value.trim();
+  if (!pkg) { showToast('Enter a package name'); return; }
+  if (!/^[a-zA-Z][a-zA-Z0-9._]*$/.test(pkg)) { showToast('Invalid package name'); return; }
+  const tier = document.getElementById('customTier').value;
+  appState[pkg] = tier;
+  input.value = '';
+  input.blur();
+  renderAppList();
+  await saveConfig();
+}
+
+// ─── Device tab ─────────────────────────────────────────────────────────────
+async function loadDeviceInfo() {
+  const infoEl     = document.getElementById('deviceInfo');
+  const guardianEl = document.getElementById('guardianStatus');
+
+  const { stdout: props } = await ksuExec(
+    'printf "model=%s\\nbrand=%s\\nandroid=%s\\nsdk=%s\\nkernel=%s\\nbuild=%s\\npatch=%s\\narch=%s\\n" ' +
+    '"$(getprop ro.product.model)" ' +
+    '"$(getprop ro.product.brand)" ' +
+    '"$(getprop ro.build.version.release)" ' +
+    '"$(getprop ro.build.version.sdk)" ' +
+    '"$(uname -r)" ' +
+    '"$(getprop ro.build.id)" ' +
+    '"$(getprop ro.build.version.security_patch)" ' +
+    '"$(uname -m)"'
+  );
+
+  const info = {};
+  props.split('\n').forEach(line => {
+    const i = line.indexOf('=');
+    if (i > 0) info[line.slice(0, i)] = line.slice(i + 1);
+  });
+
+  const rows = [
+    ['Model',           (info.brand ?? '') + ' ' + (info.model ?? '—')],
+    ['Android',         info.android ? 'Android ' + info.android + '  (API ' + (info.sdk ?? '?') + ')' : '—'],
+    ['Kernel',          info.kernel  ?? '—'],
+    ['Build ID',        info.build   ?? '—'],
+    ['Security patch',  info.patch   ?? '—'],
+    ['Architecture',    info.arch    ?? '—'],
+  ];
+  infoEl.innerHTML = rows.map(([l, v]) =>
+    '<div class="info-row"><span class="info-label">' + l + '</span><span class="info-value">' + v + '</span></div>'
+  ).join('');
+
+  // Guardian running?
+  const { stdout: ps }    = await ksuExec("ps -A 2>/dev/null | grep '[o]om_guardian' || true");
+  const running = ps.trim().length > 0;
+
+  // PolygonX score
+  const { stdout: score } = await ksuExec(
+    '_p=$(pidof com.evermorelabs.polygonx 2>/dev/null); [ -n "$_p" ] && cat /proc/$_p/oom_score_adj 2>/dev/null || echo "—"'
+  );
+
+  // Pokémon GO score
+  const { stdout: pogoScore } = await ksuExec(
+    '_p=$(pidof com.nianticlabs.pokemongo 2>/dev/null); [ -n "$_p" ] && cat /proc/$_p/oom_score_adj 2>/dev/null || echo "—"'
+  );
+
+  guardianEl.innerHTML =
+    '<div class="info-row"><span class="info-label">oom_guardian</span>' +
+    '<span class="info-value"><span class="dot ' + (running ? 'dot-green' : 'dot-red') + '"></span>' +
+    (running ? 'Running (native C)' : 'Shell loop active') + '</span></div>' +
+    '<div class="info-row"><span class="info-label">PolygonX adj</span><span class="info-value">' + score.trim() + '</span></div>' +
+    '<div class="info-row"><span class="info-label">Pokémon GO adj</span><span class="info-value">' + pogoScore.trim() + '</span></div>';
+}
+
+// ─── ART tab ────────────────────────────────────────────────────────────────
+const ART_PKGS = ['com.android.art', 'com.google.android.art'];
+
+async function loadArtStatus() {
+  artTabLoaded = true;
+  const container = document.getElementById('artStatus');
+  container.innerHTML = '<div class="loading">Checking…</div>';
+
+  // Single exec — dynamic APEX path detection + package status
+  const cmd =
+    'echo "APEX=$(ls -d /apex/com.android.art@* 2>/dev/null | head -1)"\n' +
+    ART_PKGS.map(pkg =>
+      'pm list packages 2>/dev/null | grep -q "^package:' + pkg + '$"' +
+      ' && echo "' + pkg + '=installed" || echo "' + pkg + '=absent"'
+    ).join('\n');
+
+  const { stdout } = await ksuExec(cmd);
+
+  const kv = {};
+  stdout.split('\n').forEach(line => {
+    const i = line.indexOf('=');
+    if (i > 0) kv[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+  });
+
+  const apexPath    = kv['APEX'] ?? '';
+  const apexVersion = apexPath ? apexPath.replace(/.*com\.android\.art@/, '') : '';
+
+  let html = '';
+
+  // APEX version row (top of card)
+  html += '<div class="info-row">' +
+    '<span class="info-label">APEX version</span>' +
+    (apexVersion
+      ? '<span class="info-value" style="font-family:monospace;font-size:12px">' + apexVersion + '</span>'
+      : '<span class="badge badge-off">Not detected</span>') +
+    '</div>';
+
+  // Package status rows
+  html += ART_PKGS.map(pkg => {
+    const s     = kv[pkg] ?? 'unknown';
+    const badge = s === 'installed' ? 'badge-warn' : (s === 'absent' ? 'badge-ok' : 'badge-off');
+    const label = s === 'installed' ? 'Installed' : s === 'absent' ? 'Not installed' : 'Unknown';
+    return '<div class="info-row"><span class="info-label">' + pkg +
+           '</span><span class="badge ' + badge + '">' + label + '</span></div>';
+  }).join('');
+
+  container.innerHTML = html;
+}
+
+async function uninstallArt() {
+  const btn     = document.getElementById('uninstallArtBtn');
+  const debugEl = document.getElementById('artDebug');
+  btn.disabled    = true;
+  btn.textContent = 'Uninstalling…';
+  debugEl.style.display = 'block';
+  debugEl.textContent   = 'Running…';
+
+  let log = '';
+
+  // Step 1 — uninstall ART packages
+  // Primary: without --user 0 (APEX packages reject per-user uninstall).
+  // Fallback: with --user 0 (needed for some non-APEX system packages).
+  for (const pkg of ART_PKGS) {
+    let cmd = 'pm uninstall ' + pkg + ' 2>&1';
+    log += '$ ' + cmd + '\n';
+    let res = await ksuExec(cmd);
+    let out = (res.stdout || res.stderr || '(no output)').trim();
+    log += out + '\nexit: ' + res.errno + '\n';
+
+    if (res.errno !== 0 || out.startsWith('Failure')) {
+      cmd = 'pm uninstall --user 0 ' + pkg + ' 2>&1';
+      log += '\n# Primary failed — retrying with --user 0\n';
+      log += '$ ' + cmd + '\n';
+      res = await ksuExec(cmd);
+      out = (res.stdout || res.stderr || '(no output)').trim();
+      log += out + '\nexit: ' + res.errno + '\n';
+    }
+    log += '\n';
+  }
+
+  // Step 2 — disable GMS update services so ART cannot be silently reinstalled.
+  // pm disable com.google.android.modulemetadata — safe on all Android versions.
+  // GMS component disables — run on Android 15+ (API ≥ 35) where they are required;
+  //   guarded at runtime so older devices are unaffected.
+  log += '# Disabling GMS update services to prevent ART reinstall\n';
+  const { stdout: sdkOut } = await ksuExec('getprop ro.build.version.sdk');
+  const sdk = parseInt(sdkOut.trim(), 10) || 0;
+  log += '# Detected API level: ' + sdk + '\n\n';
+
+  const disableCmds = [
+    // All versions — check existence first to avoid noisy exception if not installed
+    'pm path com.google.android.modulemetadata >/dev/null 2>&1' +
+    ' && pm disable com.google.android.modulemetadata 2>&1' +
+    ' || echo "(com.google.android.modulemetadata not present — skipping)"',
+  ];
+  if (sdk >= 35) {
+    // Android 15+ — these two are needed to fully block GMS-driven reinstalls
+    disableCmds.push("pm disable 'com.google.android.gms/.update.SystemUpdateService' 2>&1 || true");
+    disableCmds.push("pm disable 'com.google.android.gms/.chimera.GmsIntentOperationService' 2>&1 || true");
+  }
+
+  for (const cmd of disableCmds) {
+    log += '$ ' + cmd + '\n';
+    const { stdout, stderr } = await ksuExec(cmd);
+    log += (stdout || stderr || '(no output)').trim() + '\n\n';
+  }
+
+  debugEl.textContent = log.trim();
+
+  artTabLoaded = false;
+  await loadArtStatus();
+  btn.disabled    = false;
+  btn.textContent = 'Uninstall ART packages';
+  showToast('Done — reboot required');
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+(async () => {
+  await loadConfig();
+  renderAppList();
+
+  // Read version from module.prop
+  const { stdout: ver } = await ksuExec(
+    "grep '^version=' \"" + MODDIR + "/module.prop\" 2>/dev/null | cut -d= -f2"
+  );
+  if (ver.trim()) document.getElementById('modVersion').textContent = ver.trim();
+})();
+</script>
+</body>
+</html>

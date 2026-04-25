@@ -16,7 +16,10 @@ log() {
 }
 
 # ── Defaults ────────────────────────────────────────────────────────────────
-protected_apps="com.evermorelabs.polygonx com.nianticlabs.pokemongo"
+protected_apps_critical="com.evermorelabs.polygonx com.theappninjas.fakegpsjoystick com.anydesk.anydeskandroid com.evermorelabs.yamla"
+protected_apps_restartable="com.nianticlabs.pokemongo"
+# Legacy fallback — used if config only has the old protected_apps field
+protected_apps=""
 enable_watchdog=false
 enable_pogo_killer=true
 system_memory_threshold=95
@@ -25,7 +28,7 @@ pogo_memory_threshold_mb=3200
 # Source config — plain key=value, no JSON parsing required
 if [ -f "$CONFIG" ]; then
     . "$CONFIG"
-    log "Config loaded — protected: $protected_apps | watchdog: $enable_watchdog | pogo_killer: $enable_pogo_killer"
+    log "Config loaded — critical: $protected_apps_critical | restartable: $protected_apps_restartable | watchdog: $enable_watchdog | pogo_killer: $enable_pogo_killer"
 else
     log "No config at $CONFIG — using defaults"
 fi
@@ -45,15 +48,26 @@ if [ -n "$_guardian" ] && [ -x "$_guardian" ]; then
     log "oom_guardian started (arch: $_arch, pid: $!)"
 else
     log "oom_guardian not found for arch: $_arch — using shell loop"
+    # Resolve legacy field: treat protected_apps as critical if new fields are empty
+    [ -z "$protected_apps_critical" ] && protected_apps_critical="$protected_apps"
     (
         while true; do
-            for _pkg in $protected_apps; do
-                _pid=$(pidof "$_pkg")
+            for _pkg in $protected_apps_critical; do
+                _pid=$(pidof "$_pkg") || continue
                 [ -z "$_pid" ] && continue
                 echo -1000 > /proc/$_pid/oom_score_adj 2>/dev/null
-                echo -1000 > /proc/$_pid/oom_adj 2>/dev/null
+                echo -17   > /proc/$_pid/oom_adj        2>/dev/null
                 echo "$_pid" > /dev/cpuset/top-app/tasks 2>/dev/null
-                echo "$_pid" > /dev/stune/top-app/tasks 2>/dev/null
+                echo "$_pid" > /dev/stune/top-app/tasks  2>/dev/null
+                renice -18 -p "$_pid" 2>/dev/null
+            done
+            for _pkg in $protected_apps_restartable; do
+                _pid=$(pidof "$_pkg") || continue
+                [ -z "$_pid" ] && continue
+                echo -999 > /proc/$_pid/oom_score_adj 2>/dev/null
+                echo -16  > /proc/$_pid/oom_adj        2>/dev/null
+                echo "$_pid" > /dev/cpuset/top-app/tasks 2>/dev/null
+                echo "$_pid" > /dev/stune/top-app/tasks  2>/dev/null
                 renice -18 -p "$_pid" 2>/dev/null
             done
             sleep 0.1
