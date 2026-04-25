@@ -114,5 +114,4 @@ The legacy `protected_apps` field is still supported for backward compatibility.
 
 ## Credits
 
-
-**Credit:** [Furtif](https://github.com/Furtif) for the ART blockage fix.
+[Furtif](https://github.com/Furtif) for the ART blockage fix.
